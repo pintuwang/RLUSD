@@ -58,13 +58,12 @@
                 let lastSupply = supplyData[0].supply;
                 supplyData.slice(1).forEach(entry => {
                     const change = entry.supply - lastSupply;
-                    // Only log if change is significant (not 0)
-                    if (Math.abs(change) > 0.01) { // Small threshold to avoid floating-point noise
+                    if (change !== 0) { // Only log real changes
                         const row = document.createElement('tr');
                         row.innerHTML = `
                             <td>${entry.date}</td>
-                            <td>${change > 0 ? '+' : ''}${change.toFixed(2)}</td>
-                            <td>${entry.supply.toFixed(2)}</td>
+                            <td>${change > 0 ? '+' : ''}${change}</td>
+                            <td>${entry.supply}</td>
                         `;
                         logBody.appendChild(row);
                     }
