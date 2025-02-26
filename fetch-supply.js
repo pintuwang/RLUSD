@@ -3,31 +3,26 @@ const fs = require('fs');
 
 async function fetchSupply() {
     try {
-        const response = await axios.get('https://api.coingecko.com/api/v3/coins/ripple-usd/market_chart?vs_currency=usd&days=30');
-        const marketCaps = response.data.market_caps; // [timestamp, market_cap]
-        const prices = response.data.prices; // [timestamp, price]
+        const response = await axios.get('https://api.coingecko.com/api/v3/coins/ripple-usd');
+        const supply = Math.round(response.data.market_data.circulating_supply); // Integer supply
+        const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-        // Align timestamps and calculate normalized supply
-        const supplyData = marketCaps.map(([timestamp, marketCap], index) => {
-            const date = new Date(timestamp).toISOString().split('T')[0]; // YYYY-MM-DD
-            const price = prices[index][1]; // Corresponding price
-            const supply = marketCap / price; // Normalize to 1 USD peg
-            return { date, supply };
-        });
+        // Load existing data
+        let data = [];
+        if (fs.existsSync('data.json')) {
+            data = JSON.parse(fs.readFileSync('data.json'));
+        }
 
-        // Ensure unique dates
-        const uniqueData = [];
-        const seenDates = new Set();
-        for (const entry of supplyData) {
-            if (!seenDates.has(entry.date)) {
-                seenDates.add(entry.date);
-                uniqueData.push(entry);
-            }
+        // Only add if supply changed or it’s a new day
+        const lastEntry = data[data.length - 1];
+        if (!lastEntry || lastEntry.date !== date || lastEntry.supply !== supply) {
+            data.push({ date, supply });
         }
 
         // Limit to 30 days
-        const finalData = uniqueData.slice(-30);
-        fs.writeFileSync('data.json', JSON.stringify(finalData, null, 2));
+        if (data.length > 30) data.shift();
+
+        fs.writeFileSync('data.json', JSON.stringify(data, null, 2));
     } catch (error) {
         console.error('Error fetching supply:', error);
     }
