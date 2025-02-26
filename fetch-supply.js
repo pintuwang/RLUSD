@@ -7,15 +7,15 @@ async function fetchSupply() {
         const supply = Math.round(response.data.market_data.circulating_supply); // Integer supply
         const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-        // Load existing data
+        // Load existing data or start fresh
         let data = [];
         if (fs.existsSync('data.json')) {
             data = JSON.parse(fs.readFileSync('data.json'));
         }
 
-        // Only add if supply changed or it’s a new day
+        // Only add if supply increased or it’s a new day with a change
         const lastEntry = data[data.length - 1];
-        if (!lastEntry || lastEntry.date !== date || lastEntry.supply !== supply) {
+        if (!lastEntry || (lastEntry.date !== date && supply > lastEntry.supply)) {
             data.push({ date, supply });
         }
 
