@@ -7,17 +7,17 @@ async function fetchSupply() {
         const supply = Math.round(response.data.market_data.circulating_supply); // Integer supply
         const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-        // Load existing data or start fresh
+        // Load existing data or initialize
         let data = [];
         if (fs.existsSync('data.json')) {
             data = JSON.parse(fs.readFileSync('data.json'));
         }
 
-        // Only add if supply increased or it’s a new day with a change
-        const lastEntry = data[data.length - 1];
-        if (!lastEntry || (lastEntry.date !== date && supply > lastEntry.supply)) {
-            data.push({ date, supply });
-        }
+        // Remove any existing entry for today (to avoid duplicates)
+        data = data.filter(entry => entry.date !== date);
+
+        // Add today’s supply
+        data.push({ date, supply });
 
         // Limit to 30 days
         if (data.length > 30) data.shift();
