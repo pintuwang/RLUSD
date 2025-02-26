@@ -1,0 +1,26 @@
+name: Update RLUSD Supply
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs daily at midnight UTC
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with: { node-version: '16' }
+      - name: Fetch RLUSD Supply
+        run: |
+          npm install axios
+          node fetch-supply.js
+      - name: Commit Changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data.json
+          git commit -m "Update RLUSD supply data: $(date -u)"
+          git push
