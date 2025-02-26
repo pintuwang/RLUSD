@@ -29,7 +29,6 @@
     </table>
 
     <script>
-        // Load data from data.json (updated daily by GitHub Actions)
         fetch('data.json')
             .then(response => response.json())
             .then(supplyData => {
@@ -54,12 +53,13 @@
                     }
                 });
 
-                // Log setup
+                // Log setup (only non-zero changes)
                 const logBody = document.getElementById('logBody');
                 let lastSupply = supplyData[0].supply;
                 supplyData.slice(1).forEach(entry => {
                     const change = entry.supply - lastSupply;
-                    if (change !== 0) {
+                    // Only log if change is significant (not 0)
+                    if (Math.abs(change) > 0.01) { // Small threshold to avoid floating-point noise
                         const row = document.createElement('tr');
                         row.innerHTML = `
                             <td>${entry.date}</td>
@@ -75,3 +75,24 @@
     </script>
 </body>
 </html>
+Changes Explained
+Normalization in fetch-supply.js:
+Fetches both market_caps and prices from CoinGecko.
+Calculates supply = marketCap / price to normalize to the true circulating supply, removing price fluctuation effects.
+Keeps the unique-date logic for daily granularity.
+Log Filtering in index.html:
+Adds a condition (Math.abs(change) > 0.01) to only log entries where the supply change is non-zero (with a small threshold to account for floating-point imprecision).
+Formats numbers to 2 decimal places for clarity.
+Expected Outcome
+Chart: Shows a stable RLUSD supply over 30 days, with changes only when actual supply (e.g., minting or burning) occurs, not price wiggles.
+Log: Lists only days with non-zero supply changes (e.g., +10000 or -5000), making it concise. Most days should show 0 change unless RLUSD issuance changes, which aligns with a stablecoin’s behavior.
+Steps to Apply
+Replace fetch-supply.js in your repo with the updated version.
+Replace index.html with the updated version.
+Commit and push both files to your main branch.
+Wait for the next daily workflow run (or trigger it manually) to update data.json.
+Reload your GitHub Pages site (e.g., https://pintuwang.github.io/RLUSD) to see the corrected chart and log.
+Verification
+After the update, check the log. It should now only show meaningful supply changes (likely fewer entries), and the total supply should reflect the normalized circulating supply, not market cap swings.
+Let me know if you see unexpected results or need further tweaks!
+
