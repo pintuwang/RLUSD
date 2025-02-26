@@ -53,16 +53,16 @@
                     }
                 });
 
-                // Log setup (only non-zero changes)
+                // Log setup (only positive changes)
                 const logBody = document.getElementById('logBody');
                 let lastSupply = supplyData[0].supply;
                 supplyData.slice(1).forEach(entry => {
                     const change = entry.supply - lastSupply;
-                    if (change !== 0) { // Only log real changes
+                    if (change > 0) { // Only log increases
                         const row = document.createElement('tr');
                         row.innerHTML = `
                             <td>${entry.date}</td>
-                            <td>${change > 0 ? '+' : ''}${change}</td>
+                            <td>+${change}</td>
                             <td>${entry.supply}</td>
                         `;
                         logBody.appendChild(row);
