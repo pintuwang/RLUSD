@@ -29,48 +29,56 @@
     </table>
 
     <script>
-        fetch('data.json')
-            .then(response => response.json())
-            .then(supplyData => {
-                // Chart setup
-                const ctx = document.getElementById('supplyChart').getContext('2d');
-                const chart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: supplyData.map(d => d.date),
-                        datasets: [{
-                            label: 'RLUSD Total Supply',
-                            data: supplyData.map(d => d.supply),
-                            borderColor: 'blue',
-                            fill: false
-                        }]
-                    },
-                    options: {
-                        scales: {
-                            x: { title: { display: true, text: 'Date' } },
-                            y: { title: { display: true, text: 'Total Supply' } }
+    fetch('data.json')
+        .then(response => response.json())
+        .then(supplyData => {
+            // Chart setup
+            const ctx = document.getElementById('supplyChart').getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: supplyData.map(d => d.date),
+                    datasets: [{
+                        label: 'RLUSD Total Supply',
+                        data: supplyData.map(d => d.supply), // Raw numbers for chart
+                        borderColor: 'blue',
+                        fill: false
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: 'Date' } },
+                        y: { 
+                            title: { display: true, text: 'Total Supply' },
+                            ticks: {
+                                // Format Y-axis labels with commas
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
+                            }
                         }
                     }
-                });
+                }
+            });
 
-                // Log setup (only positive changes)
-                const logBody = document.getElementById('logBody');
-                let lastSupply = supplyData[0].supply;
-                supplyData.slice(1).forEach(entry => {
-                    const change = entry.supply - lastSupply;
-                    if (change > 0) { // Only log increases
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${entry.date}</td>
-                            <td>+${change}</td>
-                            <td>${entry.supply}</td>
-                        `;
-                        logBody.appendChild(row);
-                    }
-                    lastSupply = entry.supply;
-                });
-            })
-            .catch(error => console.error('Error loading data:', error));
-    </script>
-</body>
+            // Log setup (only positive changes)
+            const logBody = document.getElementById('logBody');
+            let lastSupply = supplyData[0].supply;
+            supplyData.slice(1).forEach(entry => {
+                const change = entry.supply - lastSupply;
+                if (change > 0) { // Only log increases
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${entry.date}</td>
+                        <td>+${change.toLocaleString()}</td>
+                        <td>${entry.supply.toLocaleString()}</td>
+                    `;
+                    logBody.appendChild(row);
+                }
+                lastSupply = entry.supply;
+            });
+        })
+        .catch(error => console.error('Error loading data:', error));
+</script>
+ </body>
 </html>
