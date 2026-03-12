@@ -60,7 +60,6 @@
 
     <script>
     const WINDOW_SIZE = 365;
-    const TABLE_DAYS = 90;
 
     fetch('data.json')
         .then(response => response.json())
@@ -104,16 +103,14 @@
                 const logBody = document.getElementById('logBody');
                 logBody.innerHTML = '';
 
-                // Show only last TABLE_DAYS days of the current chart window
-                const tableSlice = windowData.slice(-TABLE_DAYS);
-                const fromDate = tableSlice[0].date;
-                const toDate = tableSlice[tableSlice.length - 1].date;
-                tableInfo.textContent = `Showing supply increases from ${fromDate} → ${toDate} (scroll up for earlier data in this window)`;
+                // Use ALL data for the table so user can scroll down to the very beginning
+                const fromDate = allData[0].date;
+                const toDate = allData[allData.length - 1].date;
+                tableInfo.textContent = `All supply increases from ${fromDate} → ${toDate} — newest at top, scroll down for older data`;
 
-                // Build rows newest-first so scrolling up = going back in time
                 const rows = [];
-                let lastSupply = tableSlice[0].supply;
-                tableSlice.slice(1).forEach(entry => {
+                let lastSupply = allData[0].supply;
+                allData.slice(1).forEach(entry => {
                     const change = entry.supply - lastSupply;
                     if (change > 0) {
                         rows.push({ date: entry.date, change, supply: entry.supply });
@@ -121,7 +118,7 @@
                     lastSupply = entry.supply;
                 });
 
-                // Render newest at top
+                // Newest first — scroll down for older history
                 rows.reverse().forEach(({ date, change, supply }) => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
@@ -132,7 +129,6 @@
                     logBody.appendChild(row);
                 });
 
-                // Scroll table to top (most recent) on each update
                 tableWrapper.scrollTop = 0;
             }
 
