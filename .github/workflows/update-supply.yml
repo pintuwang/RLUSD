@@ -6,16 +6,18 @@ on:
   workflow_dispatch: # Allows manual trigger
 
 permissions:
-  contents: write # Grants write access
+  contents: write
+  pages: write
+  id-token: write
 
 jobs:
   update-data:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Node.js
-        uses: actions/setup-node@v3
-        with: { node-version: '16' }
+        uses: actions/setup-node@v4
+        with: { node-version: '20' }
       - name: Fetch RLUSD Supply
         run: |
           npm install axios
@@ -28,4 +30,24 @@ jobs:
           git commit -m "Update RLUSD supply data: $(date -u)" || echo "No changes to commit"
           git push
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Automatically provided by GitHub
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-pages:
+    needs: update-data
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main  # pull latest commit so updated data.json is included
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
