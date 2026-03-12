@@ -19,9 +19,6 @@ async function fetchSupply() {
         // Add today’s supply
         data.push({ date, supply });
 
-        // Limit to 365 days
-        if (data.length > 365) data.shift();
-
         fs.writeFileSync('data.json', JSON.stringify(data, null, 2));
     } catch (error) {
         console.error('Error fetching supply:', error);
