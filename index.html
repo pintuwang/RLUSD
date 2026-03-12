@@ -26,6 +26,10 @@
         .slider-labels { display: flex; justify-content: space-between; font-size: 13px; color: #555; margin-top: 4px; }
         #windowSlider { width: 100%; accent-color: blue; cursor: pointer; }
         #windowInfo { font-size: 14px; color: #333; margin-bottom: 8px; }
+        .table-wrapper { max-width: 800px; max-height: 320px; overflow-y: auto; border: 1px solid #ddd; }
+        .table-wrapper table { width: 100%; border-collapse: collapse; }
+        .table-wrapper thead th { position: sticky; top: 0; background-color: #f2f2f2; z-index: 1; }
+        #tableInfo { font-size: 13px; color: #555; margin: 8px 0 4px; max-width: 800px; }
     </style>
 </head>
 <body>
@@ -40,6 +44,8 @@
     </div>
     <canvas id="supplyChart"></canvas>
     <h2>Supply Change Log</h2>
+    <div id="tableInfo"></div>
+    <div class="table-wrapper">
     <table id="changeLog">
         <thead>
             <tr>
@@ -50,23 +56,25 @@
         </thead>
         <tbody id="logBody"></tbody>
     </table>
+    </div>
 
     <script>
     const WINDOW_SIZE = 365;
+    const TABLE_DAYS = 90;
 
     fetch('data.json')
         .then(response => response.json())
         .then(allData => {
             const slider = document.getElementById('windowSlider');
             const windowInfo = document.getElementById('windowInfo');
+            const tableInfo = document.getElementById('tableInfo');
+            const tableWrapper = document.querySelector('.table-wrapper');
 
-            // Slider range: 0 = oldest window, max = latest window
             const maxStart = Math.max(0, allData.length - WINDOW_SIZE);
             slider.min = 0;
             slider.max = maxStart;
-            slider.value = maxStart; // default to latest 365
+            slider.value = maxStart;
 
-            // Chart setup
             const ctx = document.getElementById('supplyChart').getContext('2d');
             const chart = new Chart(ctx, {
                 type: 'line',
@@ -95,20 +103,37 @@
             function updateTable(windowData) {
                 const logBody = document.getElementById('logBody');
                 logBody.innerHTML = '';
-                let lastSupply = windowData[0].supply;
-                windowData.slice(1).forEach(entry => {
+
+                // Show only last TABLE_DAYS days of the current chart window
+                const tableSlice = windowData.slice(-TABLE_DAYS);
+                const fromDate = tableSlice[0].date;
+                const toDate = tableSlice[tableSlice.length - 1].date;
+                tableInfo.textContent = `Showing supply increases from ${fromDate} → ${toDate} (scroll up for earlier data in this window)`;
+
+                // Build rows newest-first so scrolling up = going back in time
+                const rows = [];
+                let lastSupply = tableSlice[0].supply;
+                tableSlice.slice(1).forEach(entry => {
                     const change = entry.supply - lastSupply;
                     if (change > 0) {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${entry.date}</td>
-                            <td>+${change.toLocaleString()}</td>
-                            <td>${entry.supply.toLocaleString()}</td>
-                        `;
-                        logBody.appendChild(row);
+                        rows.push({ date: entry.date, change, supply: entry.supply });
                     }
                     lastSupply = entry.supply;
                 });
+
+                // Render newest at top
+                rows.reverse().forEach(({ date, change, supply }) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${date}</td>
+                        <td>+${change.toLocaleString()}</td>
+                        <td>${supply.toLocaleString()}</td>
+                    `;
+                    logBody.appendChild(row);
+                });
+
+                // Scroll table to top (most recent) on each update
+                tableWrapper.scrollTop = 0;
             }
 
             function updateInfo(startIdx) {
@@ -128,7 +153,7 @@
             }
 
             slider.addEventListener('input', render);
-            render(); // initial render
+            render();
         })
         .catch(error => console.error('Error loading data:', error));
 </script>
