@@ -22,10 +22,22 @@
         table { border-collapse: collapse; width: 100%; max-width: 800px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #f2f2f2; }
+        .slider-container { max-width: 800px; margin-bottom: 16px; }
+        .slider-labels { display: flex; justify-content: space-between; font-size: 13px; color: #555; margin-top: 4px; }
+        #windowSlider { width: 100%; accent-color: blue; cursor: pointer; }
+        #windowInfo { font-size: 14px; color: #333; margin-bottom: 8px; }
     </style>
 </head>
 <body>
-    <h1>RLUSD Total Supply (Last 365 Days)</h1>
+    <h1>RLUSD Total Supply</h1>
+    <div class="slider-container">
+        <div id="windowInfo"></div>
+        <input type="range" id="windowSlider" min="0" step="1" value="0">
+        <div class="slider-labels">
+            <span>◀ Historical</span>
+            <span>Latest ▶</span>
+        </div>
+    </div>
     <canvas id="supplyChart"></canvas>
     <h2>Supply Change Log</h2>
     <table id="changeLog">
@@ -40,54 +52,83 @@
     </table>
 
     <script>
+    const WINDOW_SIZE = 365;
+
     fetch('data.json')
         .then(response => response.json())
-        .then(supplyData => {
+        .then(allData => {
+            const slider = document.getElementById('windowSlider');
+            const windowInfo = document.getElementById('windowInfo');
+
+            // Slider range: 0 = oldest window, max = latest window
+            const maxStart = Math.max(0, allData.length - WINDOW_SIZE);
+            slider.min = 0;
+            slider.max = maxStart;
+            slider.value = maxStart; // default to latest 365
+
             // Chart setup
             const ctx = document.getElementById('supplyChart').getContext('2d');
             const chart = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels: supplyData.map(d => d.date),
-                    datasets: [{
-                        label: 'RLUSD Total Supply',
-                        data: supplyData.map(d => d.supply), // Raw numbers for chart
-                        borderColor: 'blue',
-                        fill: false
-                    }]
-                },
+                data: { labels: [], datasets: [{ label: 'RLUSD Total Supply', data: [], borderColor: 'blue', fill: false }] },
                 options: {
                     scales: {
                         x: { title: { display: true, text: 'Date' } },
-                        y: { 
+                        y: {
                             title: { display: true, text: 'Total Supply' },
-                            ticks: {
-                                // Format Y-axis labels with commas
-                                callback: function(value) {
-                                    return value.toLocaleString();
-                                }
-                            }
+                            ticks: { callback: value => value.toLocaleString() }
                         }
                     }
                 }
             });
 
-            // Log setup (only positive changes)
-            const logBody = document.getElementById('logBody');
-            let lastSupply = supplyData[0].supply;
-            supplyData.slice(1).forEach(entry => {
-                const change = entry.supply - lastSupply;
-                if (change > 0) { // Only log increases
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${entry.date}</td>
-                        <td>+${change.toLocaleString()}</td>
-                        <td>${entry.supply.toLocaleString()}</td>
-                    `;
-                    logBody.appendChild(row);
-                }
-                lastSupply = entry.supply;
-            });
+            function getWindow(startIdx) {
+                return allData.slice(startIdx, startIdx + WINDOW_SIZE);
+            }
+
+            function updateChart(windowData) {
+                chart.data.labels = windowData.map(d => d.date);
+                chart.data.datasets[0].data = windowData.map(d => d.supply);
+                chart.update();
+            }
+
+            function updateTable(windowData) {
+                const logBody = document.getElementById('logBody');
+                logBody.innerHTML = '';
+                let lastSupply = windowData[0].supply;
+                windowData.slice(1).forEach(entry => {
+                    const change = entry.supply - lastSupply;
+                    if (change > 0) {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${entry.date}</td>
+                            <td>+${change.toLocaleString()}</td>
+                            <td>${entry.supply.toLocaleString()}</td>
+                        `;
+                        logBody.appendChild(row);
+                    }
+                    lastSupply = entry.supply;
+                });
+            }
+
+            function updateInfo(startIdx) {
+                const endIdx = Math.min(startIdx + WINDOW_SIZE - 1, allData.length - 1);
+                const from = allData[startIdx].date;
+                const to = allData[endIdx].date;
+                const total = allData.length;
+                windowInfo.textContent = `Showing ${endIdx - startIdx + 1} days: ${from} → ${to}  (${total} days total on record)`;
+            }
+
+            function render() {
+                const startIdx = parseInt(slider.value);
+                const windowData = getWindow(startIdx);
+                updateChart(windowData);
+                updateTable(windowData);
+                updateInfo(startIdx);
+            }
+
+            slider.addEventListener('input', render);
+            render(); // initial render
         })
         .catch(error => console.error('Error loading data:', error));
 </script>
