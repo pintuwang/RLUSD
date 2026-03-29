@@ -8,10 +8,9 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-Y215D7J4MW');
-</script
-    
+</script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RLUSD Supply Monitor</title>
@@ -30,6 +29,14 @@
         .table-wrapper table { width: 100%; border-collapse: collapse; }
         .table-wrapper thead th { position: sticky; top: 0; background-color: #f2f2f2; z-index: 1; }
         #tableInfo { font-size: 13px; color: #555; margin: 8px 0 4px; max-width: 800px; }
+
+        /* Legend */
+        .legend { display: flex; gap: 20px; font-size: 13px; margin-bottom: 8px; max-width: 800px; }
+        .legend-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+
+        /* Row colour coding */
+        tr.increase td { color: #0a2a6e; font-weight: 600; }
+        tr.decrease td { color: #c94f00; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -44,18 +51,22 @@
     </div>
     <canvas id="supplyChart"></canvas>
     <h2>Supply Change Log</h2>
+    <div class="legend">
+        <span><span class="legend-dot" style="background:#0a2a6e;"></span> Increase (issuance)</span>
+        <span><span class="legend-dot" style="background:#c94f00;"></span> Decrease (redemption / burn)</span>
+    </div>
     <div id="tableInfo"></div>
     <div class="table-wrapper">
-    <table id="changeLog">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Quantity Added</th>
-                <th>Total Supply</th>
-            </tr>
-        </thead>
-        <tbody id="logBody"></tbody>
-    </table>
+        <table id="changeLog">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Change</th>
+                    <th>Total Supply</th>
+                </tr>
+            </thead>
+            <tbody id="logBody"></tbody>
+        </table>
     </div>
 
     <script>
@@ -99,31 +110,33 @@
                 chart.update();
             }
 
-            function updateTable(windowData) {
+            function updateTable() {
                 const logBody = document.getElementById('logBody');
                 logBody.innerHTML = '';
 
-                // Use ALL data for the table so user can scroll down to the very beginning
                 const fromDate = allData[0].date;
                 const toDate = allData[allData.length - 1].date;
-                tableInfo.textContent = `All supply increases from ${fromDate} → ${toDate} — newest at top, scroll down for older data`;
+                tableInfo.textContent = `All supply changes from ${fromDate} → ${toDate} — newest at top, scroll down for older data`;
 
                 const rows = [];
                 let lastSupply = allData[0].supply;
                 allData.slice(1).forEach(entry => {
                     const change = entry.supply - lastSupply;
-                    if (change > 0) {
+                    if (change !== 0) {
                         rows.push({ date: entry.date, change, supply: entry.supply });
                     }
                     lastSupply = entry.supply;
                 });
 
-                // Newest first — scroll down for older history
+                // Newest first
                 rows.reverse().forEach(({ date, change, supply }) => {
                     const row = document.createElement('tr');
+                    const isIncrease = change > 0;
+                    row.className = isIncrease ? 'increase' : 'decrease';
+                    const sign = isIncrease ? '+' : '−';
                     row.innerHTML = `
                         <td>${date}</td>
-                        <td>+${change.toLocaleString()}</td>
+                        <td>${sign}${Math.abs(change).toLocaleString()}</td>
                         <td>${supply.toLocaleString()}</td>
                     `;
                     logBody.appendChild(row);
@@ -144,7 +157,7 @@
                 const startIdx = parseInt(slider.value);
                 const windowData = getWindow(startIdx);
                 updateChart(windowData);
-                updateTable(windowData);
+                updateTable();
                 updateInfo(startIdx);
             }
 
@@ -152,6 +165,6 @@
             render();
         })
         .catch(error => console.error('Error loading data:', error));
-</script>
- </body>
+    </script>
+</body>
 </html>
