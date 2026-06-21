@@ -19,6 +19,11 @@ jobs:
         uses: actions/setup-node@v4
         with: { node-version: '20' }
       - name: Fetch RLUSD Supply
+        env:
+          # Same secret as pintuwang/Crypto — add it in:
+          # Settings → Secrets and variables → Actions → COINGECKO_API_KEY
+          # Leave unset to fall back to the free public endpoint.
+          COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
         run: |
           npm install axios
           node fetch-supply.js
