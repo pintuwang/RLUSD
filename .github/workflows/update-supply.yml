@@ -48,7 +48,7 @@ jobs:
         with:
           ref: main  # pull latest commit so updated data.json is included
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v6
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
